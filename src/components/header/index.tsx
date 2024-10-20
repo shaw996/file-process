@@ -231,8 +231,10 @@ const DropdownMenu = ({ label, children }: { label: string; children: React.Reac
       {label}
       <ChevronDown className="ml-1 w-4 h-4" />
     </div>
-    <div className="absolute hidden group-hover:block bg-white dark:bg-gray-800 mt-2 shadow-lg rounded-lg z-50 left-0 p-4 min-w-max transform translate-y-2 pointer-events-auto">
-      {children}
+    <div className="absolute hidden group-hover:block">
+      <div className="bg-white dark:bg-gray-800 mt-2 shadow-lg rounded-lg z-50 left-0 p-4 min-w-max transform translate-y-2 pointer-events-auto">
+        {children}
+      </div>
     </div>
   </div>
 );
