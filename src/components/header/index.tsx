@@ -20,6 +20,7 @@ import {
   AccordionContent,
 } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
+import Drawer from '@/components/ui/drawer';
 
 // 定义工具项类型
 type ToolItemWithIcon = {
@@ -144,37 +145,32 @@ const Header = () => {
 
       {/* 小屏幕侧边栏菜单，使用Accordion组件 */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-50">
-          <div className="absolute top-16 right-0 h-auto w-full bg-white dark:bg-gray-800 shadow-lg p-6 rounded-lg">
-            <Accordion type="single" collapsible className="w-full">
-              {toolsConfig.map((tool, index) =>
-                'items' in tool ? (
-                  <AccordionItem key={index} value={tool.label}>
-                    <AccordionTrigger>{tool.label}</AccordionTrigger>
-                    <AccordionContent>
-                      {tool.items.map((item, i) => (
-                        <NavLink key={i} href={item.path}>
-                          {item.icon} {item.label}
-                        </NavLink>
-                      ))}
-                    </AccordionContent>
-                  </AccordionItem>
-                ) : (
-                  <NavLink key={index} href={tool.path}>
+        <Drawer title="工具箱" emitClose={toggleMobileMenu}>
+          <Accordion type="single" collapsible className="w-full">
+            {toolsConfig.map((tool, index) =>
+              'items' in tool ? (
+                <AccordionItem key={index} value={tool.label}>
+                  <AccordionTrigger>{tool.label}</AccordionTrigger>
+                  <AccordionContent>
+                    {tool.items.map((item, i) => (
+                      <NavLink key={i} href={item.path}>
+                        <span className="py-2 flex flex-1 items-center font-medium text-gray-400 transition-all hover:underline">
+                          {item.label}
+                        </span>
+                      </NavLink>
+                    ))}
+                  </AccordionContent>
+                </AccordionItem>
+              ) : (
+                <NavLink key={index} href={tool.path}>
+                  <span className="py-4 flex flex-1 items-center justify-between font-medium transition-all border-b hover:underline">
                     {tool.label}
-                  </NavLink>
-                ),
-              )}
-            </Accordion>
-            {/* 关闭按钮 */}
-            <button
-              onClick={toggleMobileMenu}
-              className="absolute top-4 right-4 text-gray-800 dark:text-gray-100 font-semibold"
-            >
-              关闭
-            </button>
-          </div>
-        </div>
+                  </span>
+                </NavLink>
+              ),
+            )}
+          </Accordion>
+        </Drawer>
       )}
     </header>
   );
