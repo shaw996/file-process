@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import {
   Sun,
@@ -13,14 +13,8 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import Drawer from '@/components/ui/drawer';
+import { cn } from '@/utils/cn';
 
 // 定义工具项类型
 type ToolItemWithIcon = {
@@ -66,23 +60,181 @@ const toolsConfig: Tool[] = [
   },
 ];
 
+enum PopoverType {
+  TOOLS = 'tools', // 工具
+  MENU = 'menu', // 菜单
+}
+
+/**
+ * 小扳手按钮（小屏幕）
+ */
+const WrenchButton = ({
+  open,
+  onClick,
+}: {
+  open: boolean;
+  onClick: (value: PopoverType | null) => void;
+}) => {
+  return (
+    <div className="WrenchButton inline-block md:hidden">
+      <IconButton
+        className="relative z-10"
+        onClick={() => onClick(PopoverType.TOOLS)}
+        icon={<Wrench />}
+      />
+      <div
+        className={cn(
+          'ToolListContainer w-screen px-4 pt-20 p-b-4 fixed top-0 bottom-0 left-1/2 -translate-x-1/2 scale-0 opacity-0 transition-all duration-150 overflow-y-auto',
+          open && ['scale-100', 'opacity-100'],
+        )}
+        onClick={() => onClick(null)}
+      >
+        <ul className="ToolListScrollable w-full" onClick={($event) => $event.stopPropagation()}>
+          {toolsConfig.map((tool, index) => {
+            if ('items' in tool) {
+              return (
+                <ul className="mb-1.5 p-4 rounded shadow-md" key={index}>
+                  <li className="mb-2 text-slate-400 text-lg font-medium">{tool.label}</li>
+                  {tool.items.map((item, i) => (
+                    <li className="text-slate-950 text-base" key={i}>
+                      <NavLink href={item.path}>
+                        <span className="py-2.5 flex items-center">
+                          {item.icon ? <span className="mr-2">{item.icon}</span> : null}
+                          <span>{item.label}</span>
+                        </span>
+                      </NavLink>
+                    </li>
+                  ))}
+                </ul>
+              );
+            }
+
+            return (
+              <li className="mb-1.5 text-base rounded shadow-md" key={index}>
+                <NavLink href={tool.path}>
+                  <span className="px-4 py-2.5 flex items-center">{tool.label}</span>
+                </NavLink>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * 菜单按钮
+ */
+const MenuButton = ({
+  open,
+  onClick,
+}: {
+  open: boolean;
+  onClick: (value: PopoverType | null) => void;
+}) => {
+  const [menuIndex, setMenuIndex] = useState<number | null>(null);
+
+  const toggleMenu = (index: number | null) => {
+    setMenuIndex(menuIndex === index ? null : index);
+  };
+
+  useEffect(() => {
+    if (!open) {
+      setMenuIndex(null);
+    }
+  }, [open]);
+
+  return (
+    <div
+      className="MenuButton inline-block"
+      onMouseEnter={() => onClick(PopoverType.MENU)}
+      onMouseLeave={() => onClick(null)}
+    >
+      <IconButton
+        className="relative z-10"
+        onClick={() => onClick(PopoverType.MENU)}
+        icon={<Menu />}
+      />
+      <div
+        className={cn(
+          'MenuListContainer w-screen md:w-auto pt-20 md:pt-8 md:pb-2 flex justify-end items-start fixed top-0 md:top-12 bottom-0 md:bottom-[unset] -right-full scale-0 opacity-0 transition-all duration-150 overflow-visible',
+          open && ['right-0', 'scale-100', 'opacity-100'],
+        )}
+        onClick={($event) => {
+          $event.stopPropagation();
+          onClick(null);
+        }}
+      >
+        <ul className="Menu min-w-56 bg-white rounded-xl shadow-md overflow-visible">
+          {toolsConfig.map((tool, index) => {
+            if ('items' in tool) {
+              return (
+                <li
+                  className="mb-1.5 pr-3.5 flex justify-between items-center relative text-base cursor-pointer hover:text-red-500 group"
+                  key={index}
+                  onClick={($event) => {
+                    $event.stopPropagation();
+                    toggleMenu(index);
+                  }}
+                  onMouseEnter={() => toggleMenu(index)}
+                  onMouseLeave={() => toggleMenu(null)}
+                >
+                  <span className="px-4 py-2.5 flex items-center">{tool.label}</span>
+                  <ChevronDown className="ml-1 w-5 h-5 -rotate-90" />
+
+                  <ul
+                    className={cn(
+                      'SubMenu absolute top-0 left-0 scale-0 opacity-0 transition-all duration-150 bg-white rounded-xl shadow-md',
+                      menuIndex === index ? 'opacity-100 scale-100 -translate-x-full' : '',
+                    )}
+                  >
+                    {tool.items.map((item, i) => (
+                      <li className="text-slate-950 text-base" key={i}>
+                        <NavLink href={item.path}>
+                          <span className="px-4 py-2.5 flex items-center">
+                            {item.icon ? <span className="mr-2">{item.icon}</span> : null}
+                            <span>{item.label}</span>
+                          </span>
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              );
+            }
+
+            return (
+              <li className="mb-1.5 text-base" key={index}>
+                <NavLink href={tool.path}>
+                  <span className="px-4 py-2.5 flex items-center">{tool.label}</span>
+                </NavLink>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+};
+
 const Header = () => {
   const { theme, setTheme, resolvedTheme } = useTheme();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
+  const [popoverType, setPopoverType] = useState<PopoverType | null>(null);
 
-  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
-  const toggleToolsMenu = () => setIsToolsMenuOpen(!isToolsMenuOpen);
+  const isToolsOpen = popoverType === PopoverType.TOOLS;
+  const isMenuOpen = popoverType === PopoverType.MENU;
+
+  const togglePopover = (value: PopoverType | null) => {
+    setPopoverType(value === popoverType ? null : value);
+  };
 
   return (
     <header className="bg-white dark:bg-gray-900 shadow-md">
-      <div className="container mx-auto flex justify-between items-center py-3 px-4">
+      <div className="flex justify-between items-center py-3 px-4">
         {/* Logo 区域 */}
         <div className="flex items-center">
-          <button
-            onClick={toggleMobileMenu}
-            className="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center"
-          >
+          <button className="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center">
             <span className="text-red-500 text-3xl mr-2">❤️</span>
             PDF
           </button>
@@ -107,104 +259,18 @@ const Header = () => {
 
         {/* 图标按钮区域 */}
         <div className="flex items-center [&>*:not(:last-child)]:mr-4">
-          <IconButton className="md:hidden" onClick={toggleToolsMenu} icon={<Wrench />} />
+          {/* 小扳手 */}
+          <WrenchButton open={isToolsOpen} onClick={(value) => togglePopover(value)} />
           <IconButton
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             icon={resolvedTheme === 'dark' ? <Sun /> : <Moon />}
           />
           <IconButton icon={<User />} />
-          <IconButton onClick={toggleMobileMenu} icon={<Menu />} />
+
+          {/* 菜单 */}
+          <MenuButton open={isMenuOpen} onClick={(value) => togglePopover(value)} />
         </div>
       </div>
-
-      {/* 小屏幕工具菜单下拉显示，点击扳手图标时展示 */}
-      {isToolsMenuOpen && (
-        <Drawer title="工具箱" emitClose={toggleToolsMenu}>
-          <Accordion type="single" collapsible className="w-full">
-            {toolsConfig.map((tool, index) =>
-              'items' in tool ? (
-                <AccordionItem key={index} value={tool.label}>
-                  <AccordionTrigger>{tool.label}</AccordionTrigger>
-                  <AccordionContent>
-                    {tool.items.map((item, i) => (
-                      <NavLink key={i} href={item.path}>
-                        <span className="py-2 flex flex-1 items-center font-medium text-gray-400 transition-all hover:underline">
-                          {item.label}
-                        </span>
-                      </NavLink>
-                    ))}
-                  </AccordionContent>
-                </AccordionItem>
-              ) : (
-                <NavLink key={index} href={tool.path}>
-                  <span className="py-4 flex flex-1 items-center justify-between font-medium transition-all border-b hover:underline">
-                    {tool.label}
-                  </span>
-                </NavLink>
-              ),
-            )}
-          </Accordion>
-        </Drawer>
-      )}
-
-      {/* 菜单 */}
-      {isMobileMenuOpen && (
-        <>
-          {/* 大屏幕菜单 */}
-          <menu className="px-4 pb-4 pt-2 hidden border-t [&>*:not(:last-child)]:mr-16 md:flex">
-            {toolsConfig.map((tool, index) => {
-              if ('items' in tool) {
-                return (
-                  <ul key={index}>
-                    <li className="py-2 font-medium text-zinc-400">{tool.label}</li>
-                    {tool.items.map((item, i) => {
-                      return (
-                        <li key={i} className="py-1 text-sm">
-                          <NavLink href={item.path}>{item.label}</NavLink>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                );
-              }
-
-              return (
-                <li className="py-2 font-medium" key={index}>
-                  <NavLink href={tool.path}>{tool.label}</NavLink>
-                </li>
-              );
-            })}
-          </menu>
-
-          {/* 小屏幕侧边栏菜单，使用Accordion组件 */}
-          <Drawer className="md:hidden" title="菜单" mode="toRight" emitClose={toggleMobileMenu}>
-            <Accordion type="single" collapsible className="w-full">
-              {toolsConfig.map((tool, index) =>
-                'items' in tool ? (
-                  <AccordionItem key={index} value={tool.label}>
-                    <AccordionTrigger>{tool.label}</AccordionTrigger>
-                    <AccordionContent>
-                      {tool.items.map((item, i) => (
-                        <NavLink key={i} href={item.path}>
-                          <span className="py-2 flex flex-1 items-center font-medium transition-all hover:underline">
-                            &nbsp;&nbsp;{item.icon}&nbsp;&nbsp;{item.label}
-                          </span>
-                        </NavLink>
-                      ))}
-                    </AccordionContent>
-                  </AccordionItem>
-                ) : (
-                  <NavLink key={index} href={tool.path}>
-                    <span className="py-4 flex flex-1 items-center justify-between font-medium text-[hsl(var(--foreground))] transition-all border-b hover:underline">
-                      {tool.label}
-                    </span>
-                  </NavLink>
-                ),
-              )}
-            </Accordion>
-          </Drawer>
-        </>
-      )}
     </header>
   );
 };
